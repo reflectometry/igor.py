@@ -273,6 +273,7 @@ class Folder(object):
         self.name = path[-1]
         self.path = path
         self.children = []
+        
     def __getitem__(self, key):
         if isinstance(key, int):
             return self.children[key]
