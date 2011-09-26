@@ -289,6 +289,11 @@ class Folder(object):
             
     def append(self, record):
         self.children.append(record)
+        try:
+            setattr(self, record.name, record)
+        except AttributeError:
+            pass
+        
     def format(self, indent=0):
         parent = u" "*indent+self.name
         children = [r.format(indent=indent+2) for r in self.children]
