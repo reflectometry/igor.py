@@ -208,6 +208,8 @@ class Wave(ParseObject):
     def __array__(self):
         return self.data
         
+    __repr__ = __str__ = lambda s: u"<igor.Wave %s>" % s.format()
+        
 class Recreation(ParseObject):
     """
     Contains the experiment's recreation procedures as plain text.
@@ -279,6 +281,12 @@ class Folder(object):
                 if isinstance(r, (Folder,Wave)) and r.name == key:
                     return r
             raise KeyError("Folder %s does not exist"%key)
+            
+    def __str__(self):
+        return u"<igor.Folder %s>" % "/".join(self.path)
+    
+    __repr__ = __str__
+            
     def append(self, record):
         self.children.append(record)
     def format(self, indent=0):
