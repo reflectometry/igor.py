@@ -204,6 +204,9 @@ class Wave(ParseObject):
         else:
             type,size = "data", "x".join(str(d) for d in self.data.shape)
         return " "*indent+"%s %s (%s)"%(self.name, type, size)
+    
+    def __array__(self):
+        return self.data
         
 class Recreation(ParseObject):
     """
