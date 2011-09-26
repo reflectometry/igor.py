@@ -48,13 +48,16 @@ ORDER_NUMTYPE = {
 }
 
 
+class ParseObject(object):
+    """ Parent class for all objects the parser can return """
+    pass
 
-class Formula(object):
+class Formula(ParseObject):
     def __init__(self, formula, value):
 	self.formula = formula
         self.value = value
 
-class Variables(object): 
+class Variables(ParseObject): 
     """
     Contains system numeric variables (e.g., K0) and user numeric and string variables.
     """
@@ -85,7 +88,7 @@ class Variables(object):
               len(self.uservar)+len(self.userstr),
               len(self.depvar)+len(self.depstr))
 
-class History(object):
+class History(ParseObject):
     """
     Contains the experiment's history as plain text.
     """
@@ -93,7 +96,7 @@ class History(object):
     def format(self, indent=0):
         return " "*indent+"<History>"
 
-class Wave(object):
+class Wave(ParseObject):
     """
     Contains the data for a wave
     """
@@ -199,21 +202,21 @@ class Wave(object):
             type,size = "data", "x".join(str(d) for d in self.data.shape)
         return " "*indent+"%s %s (%s)"%(self.name, type, size)
         
-class Recreation(object):
+class Recreation(ParseObject):
     """
     Contains the experiment's recreation procedures as plain text.
     """
     def __init__(self, data, order): self.data = data
     def format(self, indent=0):
         return " "*indent + "<Recreation>"
-class Procedure(object):
+class Procedure(ParseObject):
     """
     Contains the experiment's main procedure window text as plain text.
     """
     def __init__(self, data, order): self.data = data
     def format(self, indent=0):
         return " "*indent + "<Procedure>"
-class GetHistory(object):
+class GetHistory(ParseObject):
     """
     Not a real record but rather, a message to go back and read the history text.
 
@@ -225,14 +228,14 @@ class GetHistory(object):
     def __init__(self, data, order): self.data = data
     def format(self, indent=0):
         return " "*indent + "<GetHistory>"
-class PackedFile(object):
+class PackedFile(ParseObject):
     """
     Contains the data for a procedure file or notebook in packed form.
     """
     def __init__(self, data, order): self.data = data
     def format(self, indent=0):
         return " "*indent + "<PackedFile>"
-class Unknown(object):
+class Unknown(ParseObject):
     """
     Record type not documented in PTN003/TN003.
     """
@@ -242,13 +245,13 @@ class Unknown(object):
     def format(self, indent=0):
         return " "*indent + "<Unknown type %s>"%self.type
 
-class _FolderStart(object):
+class _FolderStart(ParseObject):
     """
     Marks the start of a new data folder.
     """
     def __init__(self, data, order): 
         self.name = data[:data.find(chr(0))]
-class _FolderEnd(object):
+class _FolderEnd(ParseObject):
     """
     Marks the end of a data folder.
     """
