@@ -18,6 +18,9 @@ __version__="0.8"
 
 import struct
 import numpy
+import sys
+
+decode = lambda s: s.decode(sys.getfilesystemencoding())
 
 NUMTYPE = {
      1: numpy.complex64,
@@ -186,7 +189,7 @@ class Wave(ParseObject):
             pos = offset[-1]
 
             
-        self.name = name
+        self.name = decode(name)
         self.data = value
         self.data_units = data_units
         self.axis_units = axis_units
@@ -250,7 +253,7 @@ class _FolderStart(ParseObject):
     Marks the start of a new data folder.
     """
     def __init__(self, data, order): 
-        self.name = data[:data.find(chr(0))]
+        self.name = decode(data[:data.find(chr(0))])
 class _FolderEnd(ParseObject):
     """
     Marks the end of a data folder.
@@ -276,9 +279,9 @@ class Folder(object):
     def append(self, record):
         self.children.append(record)
     def format(self, indent=0):
-        parent = " "*indent+self.name
+        parent = u" "*indent+self.name
         children = [r.format(indent=indent+2) for r in self.children]
-        return "\n".join([parent]+children)
+        return u"\n".join([parent]+children)
 
 PARSER = {
 1: Variables,
@@ -297,7 +300,7 @@ def loads(s, ignore_unknown=True):
     max = len(s)
     pos = 0
     ret = []
-    stack = [Folder(path=['root'])]
+    stack = [Folder(path=[u'root'])]
     while pos < max:
         if pos+8 > max:
             raise IOError("invalid record header; bad pxp file?")
