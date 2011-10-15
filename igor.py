@@ -19,8 +19,19 @@ __version__="0.8"
 import struct
 import numpy
 import sys
+import re
 
 decode = lambda s: s.decode(sys.getfilesystemencoding())
+
+PYKEYWORDS = set(('and','as','assert','break','class','continue',
+                  'def','elif','else','except','exec','finally',
+                  'for','global','if','import','in','is','lambda',
+                  'or','pass','print','raise','return','try','with',
+                  'yield'))
+PYID = re.compile(r"^[^\d\W]\w*$", re.UNICODE)
+def valid_identifier(s):
+    """Check if a name is a valid identifier"""
+    return PYID.match(s) and s not in PYKEYWORDS
 
 NUMTYPE = {
      1: numpy.complex64,
@@ -51,16 +62,16 @@ ORDER_NUMTYPE = {
 }
 
 
-class ParseObject(object):
+class IgorObject(object):
     """ Parent class for all objects the parser can return """
     pass
 
-class Formula(ParseObject):
+class Formula(IgorObject):
     def __init__(self, formula, value):
-	self.formula = formula
+        self.formula = formula
         self.value = value
 
-class Variables(ParseObject): 
+class Variables(IgorObject):
     """
     Contains system numeric variables (e.g., K0) and user numeric and string variables.
     """
@@ -78,12 +89,12 @@ class Variables(ParseObject):
         else:
             raise ValueError("Unknown variable record version "+str(version))
         self.sysvar, pos = _parse_sys_numeric(nSysVar, order, data, pos)
-        self.uservar, pos = _parse_user_numeric(nUserVar, order, data, pos) 
+        self.uservar, pos = _parse_user_numeric(nUserVar, order, data, pos)
         if version == 1:
-            self.userstr, pos = _parse_user_string1(nUserStr, order, data, pos) 
+            self.userstr, pos = _parse_user_string1(nUserStr, order, data, pos)
         else:
-            self.userstr, pos = _parse_user_string2(nUserStr, order, data, pos) 
-        self.depvar, pos = _parse_dep_numeric(nDepVar, order, data, pos) 
+            self.userstr, pos = _parse_user_string2(nUserStr, order, data, pos)
+        self.depvar, pos = _parse_dep_numeric(nDepVar, order, data, pos)
         self.depstr, pos = _parse_dep_string(nDepStr, order, data, pos)
     def format(self, indent=0):
         return " "*indent+"<Variables: system %d, user %d, dependent %s>"\
@@ -91,7 +102,7 @@ class Variables(ParseObject):
               len(self.uservar)+len(self.userstr),
               len(self.depvar)+len(self.depstr))
 
-class History(ParseObject):
+class History(IgorObject):
     """
     Contains the experiment's history as plain text.
     """
@@ -99,7 +110,7 @@ class History(ParseObject):
     def format(self, indent=0):
         return " "*indent+"<History>"
 
-class Wave(ParseObject):
+class Wave(IgorObject):
     """
     Contains the data for a wave
     """
@@ -152,7 +163,7 @@ class Wave(ParseObject):
             dims = struct.unpack(order+'iiii',data[pos+68:pos+84])
             sf = struct.unpack(order+'dddddddd',data[pos+84:pos+148])
             data_units = data[pos+148:data.find(chr(0),pos+148,pos+152)]
-            axis_units = tuple(data[pos+152+4*i 
+            axis_units = tuple(data[pos+152+4*i
                                  : data.find(chr(0),pos+152+4*i,pos+156+4*i)]
                          for i in range(4))
             fsValid,_,fsTop,fsBottom \
@@ -163,8 +174,8 @@ class Wave(ParseObject):
             text = data[pos:extra_offset]
             textind = numpy.fromstring(data[-textindsize:], order+'i')
             textind = numpy.hstack((0,textind))
-            value = [text[textind[i]:textind[i+1]] 
-                     for i in range(len(textind)-1)] 
+            value = [text[textind[i]:textind[i+1]]
+                     for i in range(len(textind)-1)]
         else:
             trimdims = tuple(d for d in dims if d)
             dtype = order+ORDER_NUMTYPE[type]
@@ -188,7 +199,7 @@ class Wave(ParseObject):
             axis_labels = Eaxis_labels
             pos = offset[-1]
 
-            
+
         self.name = decode(name)
         self.data = value
         self.data_units = data_units
@@ -204,27 +215,27 @@ class Wave(ParseObject):
         else:
             type,size = "data", "x".join(str(d) for d in self.data.shape)
         return " "*indent+"%s %s (%s)"%(self.name, type, size)
-    
+
     def __array__(self):
         return self.data
-        
+
     __repr__ = __str__ = lambda s: u"<igor.Wave %s>" % s.format()
-        
-class Recreation(ParseObject):
+
+class Recreation(IgorObject):
     """
     Contains the experiment's recreation procedures as plain text.
     """
     def __init__(self, data, order): self.data = data
     def format(self, indent=0):
         return " "*indent + "<Recreation>"
-class Procedure(ParseObject):
+class Procedure(IgorObject):
     """
     Contains the experiment's main procedure window text as plain text.
     """
     def __init__(self, data, order): self.data = data
     def format(self, indent=0):
         return " "*indent + "<Procedure>"
-class GetHistory(ParseObject):
+class GetHistory(IgorObject):
     """
     Not a real record but rather, a message to go back and read the history text.
 
@@ -236,14 +247,14 @@ class GetHistory(ParseObject):
     def __init__(self, data, order): self.data = data
     def format(self, indent=0):
         return " "*indent + "<GetHistory>"
-class PackedFile(ParseObject):
+class PackedFile(IgorObject):
     """
     Contains the data for a procedure file or notebook in packed form.
     """
     def __init__(self, data, order): self.data = data
     def format(self, indent=0):
         return " "*indent + "<PackedFile>"
-class Unknown(ParseObject):
+class Unknown(IgorObject):
     """
     Record type not documented in PTN003/TN003.
     """
@@ -253,19 +264,19 @@ class Unknown(ParseObject):
     def format(self, indent=0):
         return " "*indent + "<Unknown type %s>"%self.type
 
-class _FolderStart(ParseObject):
+class _FolderStart(IgorObject):
     """
     Marks the start of a new data folder.
     """
-    def __init__(self, data, order): 
+    def __init__(self, data, order):
         self.name = decode(data[:data.find(chr(0))])
-class _FolderEnd(ParseObject):
+class _FolderEnd(IgorObject):
     """
     Marks the end of a data folder.
     """
     def __init__(self, data, order): self.data = data
 
-class Folder(object):
+class Folder(IgorObject):
     """
     Hierarchical record container.
     """
@@ -273,7 +284,7 @@ class Folder(object):
         self.name = path[-1]
         self.path = path
         self.children = []
-        
+
     def __getitem__(self, key):
         if isinstance(key, int):
             return self.children[key]
@@ -282,19 +293,27 @@ class Folder(object):
                 if isinstance(r, (Folder,Wave)) and r.name == key:
                     return r
             raise KeyError("Folder %s does not exist"%key)
-            
+
     def __str__(self):
         return u"<igor.Folder %s>" % "/".join(self.path)
-    
+
     __repr__ = __str__
-            
+
     def append(self, record):
+        """
+        Add a record to the folder.
+        """
         self.children.append(record)
         try:
-            setattr(self, record.name, record)
+            # Record may not have a name, the name may be invalid, or it
+            # may already be in use.   The noname case will be covered by
+            # record.name raising an attribute error.  The others we need
+            # to test for explicitly.
+            if valid_identifier(record.name) and not hasattr(self, record.name):
+                setattr(self, record.name, record)
         except AttributeError:
             pass
-        
+
     def format(self, indent=0):
         parent = u" "*indent+self.name
         children = [r.format(indent=indent+2) for r in self.children]
@@ -338,14 +357,14 @@ def loads(s, ignore_unknown=True):
             else:
                 record = Unknown(data=data, order=order, type=type)
             if isinstance(record, _FolderStart):
-                 path = stack[-1].path+[record.name]
-                 folder = Folder(path)
-                 stack[-1].append(folder)
-                 stack.append(folder)
+                path = stack[-1].path+[record.name]
+                folder = Folder(path)
+                stack[-1].append(folder)
+                stack.append(folder)
             elif isinstance(record, _FolderEnd):
-                 stack.pop()
+                stack.pop()
             else:
-                 stack[-1].append(record)
+                stack[-1].append(record)
     if len(stack) != 1:
         raise IOError("FolderStart records do not match FolderEnd records")
     return stack[0]
@@ -359,7 +378,7 @@ def load(filename, ignore_unknown=True):
 def _parse_sys_numeric(n, order, data, pos):
     values = numpy.fromstring(data[pos:pos+n*4], order+'f')
     pos += n*4
-    var = dict(('K'+str(i),v) for i,v in enumerate(values)) 
+    var = dict(('K'+str(i),v) for i,v in enumerate(values))
     return var, pos
 
 def _parse_user_numeric(n, order, data, pos):
@@ -371,7 +390,7 @@ def _parse_user_numeric(n, order, data, pos):
         if dtype in (numpy.complex64, numpy.complex128):
             value = dtype(real+1j*imag)
         else:
-            value = dtype(real) 
+            value = dtype(real)
         var[name] = value
         pos += 56
     return var, pos
@@ -385,7 +404,7 @@ def _parse_dep_numeric(n, order, data, pos):
         if dtype in (numpy.complex64, numpy.complex128):
             value = dtype(real+1j*imag)
         else:
-            value = dtype(real) 
+            value = dtype(real)
         length, = struct.unpack(order+"h",data[pos+56:pos+58])
         var[name] = Formula(data[pos+58:pos+58+length-1], value)
         pos += 58+length
@@ -419,4 +438,3 @@ def _parse_user_string2(n, order, data, pos):
         pos += 36+length
         var[name] = value
     return var, pos
-
