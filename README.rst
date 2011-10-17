@@ -23,7 +23,7 @@ Change History
 
 0.9  2011-10-14  Merlijn van Deen
 
-* access access to data object using f.name in addition to f['name'] and f[i]
+* access to data object using f.name in addition to f['name'] and f[i]
 * allow a data object to be used directly as an array, e.g., numpy.sum(f.name)
 * better unicode handling
 
