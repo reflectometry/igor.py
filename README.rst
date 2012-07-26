@@ -1,3 +1,12 @@
+Note
+====
+
+This package has been superceded by `igor <http://pypi.python.org/pypi/igor>`_. 
+
+Use the new igor package with the following to get the same interface::
+
+    import igor.igorpy as igor
+
 Igor.py
 =======
 
