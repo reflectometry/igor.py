@@ -30,6 +30,11 @@ directory and type::
 Change History
 --------------
 
+0.9.1 2015-09-11
+
+* pypi forced a revision upgrade to update the readme; it won't even allow
+  the old 0.9 version to be restored on the site!
+
 0.9  2011-10-14  Merlijn van Deen
 
 * access to data object using f.name in addition to f['name'] and f[i]
