@@ -1,7 +1,7 @@
 Note
 ====
 
-This package has been superceded by `igor <http://pypi.python.org/pypi/igor>`_. 
+This package has been superseded by `igor <http://pypi.python.org/pypi/igor>`_. 
 
 Use the new igor package with the following to get the same interface::
 
